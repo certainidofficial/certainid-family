@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import {
   getPendingPosts,
   getChildren,
@@ -520,7 +519,7 @@ export default function ParentDashboard() {
 
   const handleLogout = useCallback(async () => {
     setLoading(true);
-    await signOut(auth);
+    await supabase.auth.signOut();
     setUser(null);
     setLoading(false);
     navigate('/login', { replace: true });

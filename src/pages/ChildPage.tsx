@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { submitPost, getAuditLog, type SubmitPostResult, type AuditEntry } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import PlatformBadge from '../components/shared/PlatformBadge';
@@ -77,7 +76,7 @@ export default function ChildPage() {
 
   async function handleLogout() {
     setLoading(true);
-    await signOut(auth);
+    await supabase.auth.signOut();
     setUser(null);
     setLoading(false);
     navigate('/login', { replace: true });

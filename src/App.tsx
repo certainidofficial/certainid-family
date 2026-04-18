@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './lib/firebase';
+import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/authStore';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ProtectedRoute from './components/shared/ProtectedRoute';
@@ -27,23 +26,20 @@ export default function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        // Preserve existing role from store if this is a returning user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
         const existingUser = useAuthStore.getState().user;
-        const role = existingUser?.uid === firebaseUser.uid ? existingUser?.role ?? null : null;
-        const ageTier =
-          existingUser?.uid === firebaseUser.uid ? existingUser?.ageTier : undefined;
+        const role = existingUser?.uid === session.user.id ? existingUser?.role ?? null : null;
+        const ageTier = existingUser?.uid === session.user.id ? existingUser?.ageTier : undefined;
 
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          uid: session.user.id,
+          email: session.user.email ?? null,
+          displayName: (session.user.user_metadata?.full_name as string) ?? null,
           role,
           ageTier,
         });
 
-        // If no role, redirect to onboarding (new user)
         if (!role) {
           navigate('/onboarding', { replace: true });
         }
@@ -53,7 +49,25 @@ export default function App() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const existingUser = useAuthStore.getState().user;
+        const role = existingUser?.uid === session.user.id ? existingUser?.role ?? null : null;
+        const ageTier = existingUser?.uid === session.user.id ? existingUser?.ageTier : undefined;
+
+        setUser({
+          uid: session.user.id,
+          email: session.user.email ?? null,
+          displayName: (session.user.user_metadata?.full_name as string) ?? null,
+          role,
+          ageTier,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,7 +95,6 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-      {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
