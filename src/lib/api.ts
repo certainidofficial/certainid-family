@@ -76,6 +76,20 @@ export function getAuditLog(childId: string): Promise<AuditEntry[]> {
   return request(`/api/audit/log?childId=${encodeURIComponent(childId)}`);
 }
 
+export function createChildInvite(childId: string): Promise<{ inviteCode: string }> {
+  return request('/api/family/create-child-invite', {
+    method: 'POST',
+    body: JSON.stringify({ childId }),
+  });
+}
+
+export function acceptChildInvite(parentId: string, inviteCode: string): Promise<{ success: boolean; childId: string }> {
+  return request('/api/family/accept-invite', {
+    method: 'POST',
+    body: JSON.stringify({ parentId, inviteCode }),
+  });
+}
+
 // ---- Shared types ----
 
 export interface ChildRecord {

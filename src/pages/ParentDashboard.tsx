@@ -39,7 +39,7 @@ function timeAgo(dateStr: string): string {
 function Spinner() {
   return (
     <div className="flex justify-center py-10">
-      <div className="w-7 h-7 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin" />
+      <div className="w-7 h-7 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
@@ -85,13 +85,13 @@ function OverviewTab({ pendingCount, children }: { pendingCount: number; childre
           {MOCK_AUDIT.map((entry) => (
             <div
               key={entry.id}
-              className="bg-[#1e293b] rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+              className="bg-white rounded-xl px-4 py-3 flex items-center justify-between gap-3"
             >
               <div className="min-w-0">
-                <p className="text-sm text-white font-medium truncate">
+                <p className="text-sm text-slate-800 font-medium truncate">
                   {entry.childName} — {entry.action}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">{timeAgo(entry.timestamp)}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{timeAgo(entry.timestamp)}</p>
               </div>
               {entry.platform && <PlatformBadge platform={entry.platform} />}
             </div>
@@ -114,10 +114,10 @@ function StatCard({
   return (
     <div
       className={`rounded-xl p-3 text-center ${
-        highlight ? 'bg-red-900/40 border border-red-700' : 'bg-[#1e293b]'
+        highlight ? 'bg-red-50 border border-red-200' : 'bg-white'
       }`}
     >
-      <p className={`text-2xl font-bold ${highlight ? 'text-red-400' : 'text-white'}`}>{value}</p>
+      <p className={`text-2xl font-bold ${highlight ? "text-red-600" : "text-slate-800"}`}>{value}</p>
       <p className="text-xs text-slate-400 mt-1">{label}</p>
     </div>
   );
@@ -160,16 +160,16 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
   return (
     <div className="space-y-4">
       {posts.map((post) => (
-        <div key={post.id} className="bg-[#1e293b] rounded-xl p-4">
+        <div key={post.id} className="bg-white rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-white font-semibold text-sm">{post.childName}</span>
+            <span className="text-slate-800 font-semibold text-sm">>{post.childName}</span>
             <div className="flex items-center gap-2">
               <PlatformBadge platform={post.platform} />
-              <span className="text-xs text-slate-500">{timeAgo(post.createdAt)}</span>
+              <span className="text-xs text-slate-400">{timeAgo(post.createdAt)}</span>
             </div>
           </div>
 
-          <p className="text-slate-300 text-sm leading-relaxed mb-4">
+          <p className="text-slate-600 text-sm leading-relaxed mb-4">
             {post.content.length > 100 ? `${post.content.slice(0, 100)}...` : post.content}
           </p>
 
@@ -180,7 +180,7 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
                 placeholder="Reason for rejection (optional)"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full bg-[#0f172a] border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500"
               />
               <div className="flex gap-2">
                 <button
@@ -201,7 +201,7 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
                     setRejectingId(null);
                     setRejectReason('');
                   }}
-                  className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm font-medium hover:border-slate-400 transition-colors"
+                  className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-600 text-sm font-medium hover:border-slate-400 transition-colors"
                 >
                   Cancel
                 </button>
@@ -212,14 +212,14 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
               <button
                 onClick={() => resolveMutation.mutate({ postId: post.id, action: 'approve' })}
                 disabled={resolveMutation.isPending}
-                className="flex-1 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Approve
               </button>
               <button
                 onClick={() => setRejectingId(post.id)}
                 disabled={resolveMutation.isPending}
-                className="flex-1 py-2 rounded-lg bg-red-800 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Reject
               </button>
@@ -265,16 +265,16 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
   }
 
   return (
-    <div className="mt-4 border-t border-slate-700 pt-4 space-y-5">
+    <div className="mt-4 border-t border-slate-200 pt-4 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-white">Require approval for posts</p>
-          <p className="text-xs text-slate-500 mt-0.5">Posts need your approval before going live</p>
+          <p className="text-sm font-medium text-slate-700">Require approval for posts</p>
+          <p className="text-xs text-slate-400 mt-0.5">Posts need your approval before going live</p>
         </div>
         <button
           onClick={() => setRules((r) => ({ ...r, postApprovalRequired: !r.postApprovalRequired }))}
           className={`relative w-11 h-6 rounded-full transition-colors ${
-            rules.postApprovalRequired ? 'bg-[#6366f1]' : 'bg-slate-600'
+            rules.postApprovalRequired ? 'bg-indigo-600' : 'bg-slate-200'
           }`}
         >
           <span
@@ -286,7 +286,7 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
       </div>
 
       <div>
-        <p className="text-sm font-medium text-white mb-2">Allowed platforms</p>
+        <p className="text-sm font-medium text-slate-700 mb-2">Allowed platforms</p>
         <div className="flex flex-wrap gap-2">
           {PLATFORMS.map((p) => (
             <button
@@ -294,7 +294,7 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
               onClick={() => togglePlatform(p)}
               className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
                 rules.allowedPlatforms.includes(p)
-                  ? 'border-[#6366f1] bg-indigo-900/40 text-indigo-300'
+                  ? 'border-indigo-400 bg-indigo-50 text-indigo-600'
                   : 'border-slate-600 text-slate-400 hover:border-slate-400'
               }`}
             >
@@ -306,7 +306,7 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-white">Screen time limit</p>
+          <p className="text-sm font-medium text-slate-700">Screen time limit</p>
           <span className="text-xs text-slate-400">{rules.screenTimeLimitMinutes} min / day</span>
         </div>
         <input
@@ -320,7 +320,7 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
           }
           className="w-full accent-indigo-500"
         />
-        <div className="flex justify-between text-xs text-slate-500 mt-1">
+        <div className="flex justify-between text-xs text-slate-400 mt-1">
           <span>30 min</span>
           <span>8 hrs</span>
         </div>
@@ -329,7 +329,7 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-2 rounded-lg bg-[#6366f1] hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+        className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
       >
         {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Rules'}
       </button>
@@ -374,17 +374,17 @@ function ChildrenTab({ parentId }: { parentId: string }) {
   return (
     <div className="space-y-4">
       {children.map((child) => (
-        <div key={child.uid} className="bg-[#1e293b] rounded-xl p-4">
+        <div key={child.uid} className="bg-white rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-white font-semibold text-sm">{child.displayName}</span>
-                <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">
+                <span className="text-slate-800 font-semibold text-sm">{child.displayName}</span>
+                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
                   {child.ageTier}
                 </span>
               </div>
               {child.pendingCount > 0 && (
-                <p className="text-xs text-red-400 mt-1">
+                <p className="text-xs text-red-500 mt-1">
                   {child.pendingCount} post{child.pendingCount !== 1 ? 's' : ''} pending approval
                 </p>
               )}
@@ -393,7 +393,7 @@ function ChildrenTab({ parentId }: { parentId: string }) {
               onClick={() =>
                 setExpandedChild(expandedChild === child.uid ? null : child.uid)
               }
-              className="text-xs font-medium text-[#6366f1] hover:text-indigo-400 transition-colors"
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-400 transition-colors"
             >
               {expandedChild === child.uid ? 'Close' : 'Manage Rules'}
             </button>
@@ -405,42 +405,42 @@ function ChildrenTab({ parentId }: { parentId: string }) {
       {!showInviteFlow ? (
         <button
           onClick={handleAddChild}
-          className="w-full py-3 border-2 border-dashed border-slate-600 hover:border-[#6366f1] rounded-xl text-slate-400 hover:text-[#6366f1] text-sm font-medium transition-colors"
+          className="w-full py-3 border-2 border-dashed border-slate-600 hover:border-indigo-400 rounded-xl text-slate-400 hover:text-indigo-600 text-sm font-medium transition-colors"
         >
           + Add Child
         </button>
       ) : (
-        <div className="bg-[#1e293b] rounded-xl p-5 space-y-4">
-          <h3 className="text-white font-semibold">Add a Child</h3>
+        <div className="bg-white rounded-xl p-5 space-y-4">
+          <h3 className="text-slate-800 font-semibold">Add a Child</h3>
 
           {generatingCode ? (
             <div className="flex justify-center py-4">
-              <div className="w-6 h-6 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : inviteCode === 'ERROR' ? (
-            <p className="text-red-400 text-sm text-center">
+            <p className="text-red-500 text-sm text-center">
               Failed to generate code. Please try again.
             </p>
           ) : (
             <>
-              <p className="text-slate-400 text-sm">Share this code with your child:</p>
+              <p className="text-slate-500 text-sm">Share this code with your child — they enter it after signing up:</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-[#0f172a] border border-slate-600 rounded-xl px-4 py-3 text-center">
-                  <span className="text-3xl font-mono font-bold text-white tracking-widest">
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center">
+                  <span className="text-3xl font-mono font-bold text-slate-800 tracking-widest">
                     {inviteCode}
                   </span>
                 </div>
                 <button
                   onClick={handleCopy}
-                  className="p-3 bg-[#0f172a] border border-slate-600 rounded-xl text-slate-400 hover:text-white hover:border-slate-400 transition-colors"
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors"
                   title="Copy code"
                 >
                   <ClipboardIcon />
                 </button>
               </div>
-              {copied && <p className="text-xs text-green-400 text-center">Copied to clipboard!</p>}
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Have your child visit this site and enter the code when signing up. The code is valid for 24 hours.
+              {copied && <p className="text-xs text-emerald-600 text-center">Copied!</p>}
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Or if your child already sent <em>you</em> a code, enter it in the Join page.
               </p>
             </>
           )}
@@ -450,7 +450,7 @@ function ChildrenTab({ parentId }: { parentId: string }) {
               setShowInviteFlow(false);
               setInviteCode('');
             }}
-            className="w-full py-2 border border-slate-600 rounded-lg text-slate-300 text-sm font-medium hover:border-slate-400 transition-colors"
+            className="w-full py-2 border border-slate-600 rounded-lg text-slate-600 text-sm font-medium hover:border-slate-400 transition-colors"
           >
             Done
           </button>
@@ -467,19 +467,19 @@ function SettingsTab({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-[#1e293b] rounded-xl p-5 space-y-3">
+      <div className="bg-white rounded-xl p-5 space-y-3">
         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Account</h2>
         <div>
-          <p className="text-xs text-slate-500">Display name</p>
-          <p className="text-white text-sm font-medium mt-0.5">{user?.displayName || 'Not set'}</p>
+          <p className="text-xs text-slate-400">Display name</p>
+          <p className="text-slate-800 text-sm font-medium mt-0.5">{user?.displayName || 'Not set'}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">Email</p>
-          <p className="text-white text-sm font-medium mt-0.5">{user?.email || 'Not set'}</p>
+          <p className="text-xs text-slate-400">Email</p>
+          <p className="text-slate-800 text-sm font-medium mt-0.5">{user?.email || 'Not set'}</p>
         </div>
       </div>
 
-      <div className="bg-[#1e293b] rounded-xl p-5">
+      <div className="bg-white rounded-xl p-5">
         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">About CertainID Family</h2>
         <p className="text-slate-400 text-sm leading-relaxed">
           All approvals are recorded on the Polygon blockchain for a tamper-proof audit trail.
@@ -489,7 +489,7 @@ function SettingsTab({ onLogout }: { onLogout: () => void }) {
 
       <button
         onClick={onLogout}
-        className="w-full py-3 rounded-xl border border-red-800 text-red-400 hover:bg-red-900/20 font-semibold text-sm transition-colors"
+        className="w-full py-3 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-sm transition-colors"
       >
         Sign Out
       </button>
@@ -533,31 +533,31 @@ export default function ParentDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="bg-[#1e293b] border-b border-slate-700 px-4 py-3 flex items-center justify-between">
+      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
         <div>
-          <h1 className="text-white font-bold text-base">CertainID Family</h1>
+          <h1 className="text-slate-800 font-bold text-base">CertainID Family</h1>
           <p className="text-slate-400 text-xs mt-0.5">{user?.displayName || user?.email}</p>
         </div>
         <button
           onClick={handleLogout}
-          className="text-xs text-slate-400 hover:text-white border border-slate-600 hover:border-slate-400 px-3 py-1.5 rounded-lg transition-colors"
+          className="text-xs text-slate-400 hover:text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
         >
           Sign Out
         </button>
       </header>
 
       {/* Tab Bar */}
-      <nav className="sticky top-0 z-10 bg-[#0f172a] border-b border-slate-800 flex overflow-x-auto no-scrollbar">
+      <nav className="sticky top-0 z-10 bg-slate-50 border-b border-slate-100 flex overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`relative flex-1 min-w-max px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === tab.id
-                ? 'text-[#6366f1]'
-                : 'text-slate-400 hover:text-white'
+                ? 'text-indigo-600'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             {tab.label}
@@ -567,7 +567,7 @@ export default function ParentDashboard() {
               </span>
             )}
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6366f1]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
             )}
           </button>
         ))}
