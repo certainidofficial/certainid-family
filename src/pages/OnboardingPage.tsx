@@ -4,9 +4,9 @@ import { registerUser } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 
 const AGE_TIERS = [
-  { value: 'under-13', label: 'Under 13' },
-  { value: '13-15', label: '13 – 15' },
-  { value: '16-17', label: '16 – 17' },
+  { value: 'under13', label: 'Under 13' },
+  { value: 'age13to15', label: '13 – 15' },
+  { value: 'age16to17', label: '16 – 17' },
 ];
 
 function UsersIcon() {
