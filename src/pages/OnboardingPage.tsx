@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { registerUser } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
+import { supabase } from '../lib/supabase';
 
 const AGE_TIERS = [
   { value: 'under13', label: 'Under 13' },
@@ -29,12 +30,28 @@ export default function OnboardingPage() {
   }
 
   async function completeOnboarding(role: 'parent' | 'child', tier?: string) {
-    if (!user) return;
     setLoading(true);
     setError('');
     try {
-      await registerUser(user.uid, user.email ?? '', user.displayName ?? 'User', role, tier);
-      setUser({ ...user, role, ageTier: tier });
+      // Re-fetch from Supabase if the store's user was wiped by an auth event
+      let activeUser = user;
+      if (!activeUser) {
+        const { data: { user: sbUser } } = await supabase.auth.getUser();
+        if (!sbUser) {
+          setError('Session expired. Please sign in again.');
+          setLoading(false);
+          return;
+        }
+        activeUser = {
+          uid: sbUser.id,
+          email: sbUser.email ?? null,
+          displayName: (sbUser.user_metadata?.full_name as string) ?? null,
+          role: null,
+        };
+        setUser(activeUser);
+      }
+      await registerUser(activeUser.uid, activeUser.email ?? '', activeUser.displayName ?? 'User', role, tier);
+      setUser({ ...activeUser, role, ageTier: tier });
       if (role === 'parent') {
         navigate(inviteCode ? `/join?code=${inviteCode}` : '/dashboard', { replace: true });
       } else {

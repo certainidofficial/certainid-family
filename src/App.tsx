@@ -62,14 +62,15 @@ export default function App() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const existingUser = useAuthStore.getState().user;
         const role = existingUser?.uid === session.user.id ? existingUser?.role ?? null : null;
         const ageTier = existingUser?.uid === session.user.id ? existingUser?.ageTier : undefined;
         const displayName = (session.user.user_metadata?.full_name as string) ?? existingUser?.displayName ?? null;
         setUser({ uid: session.user.id, email: session.user.email ?? null, displayName, role, ageTier });
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        // Only clear user on explicit sign-out — not on EMAIL_CONFIRMATION_SENT or other null-session events
         setUser(null);
       }
     });
