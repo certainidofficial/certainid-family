@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [statusMsg, setStatusMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const redirectAfterAuth = inviteCode ? `/join?code=${inviteCode}` : '/';
@@ -172,12 +173,13 @@ export default function LoginPage() {
               const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
                 redirectTo: window.location.origin + '/login',
               });
-              setError(resetError ? resetError.message : 'Password reset email sent — check your inbox.');
+              if (resetError) { setError(resetError.message); } else { setStatusMsg('Password reset email sent — check your inbox.'); }
             }}
             className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
           >
             Forgot password?
           </button>
+          {statusMsg && <p className="text-xs text-emerald-600">{statusMsg}</p>}
           <p className="text-xs text-slate-400">Your data is encrypted and never shared with third parties.</p>
         </div>
       </div>

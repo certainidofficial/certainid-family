@@ -137,6 +137,14 @@ function InviteParentScreen({ childId }: { childId: string }) {
               <p className="text-center text-xs text-slate-400">
                 Waiting for your parent to accept...
               </p>
+
+              <button
+                onClick={generateInvite}
+                disabled={loading}
+                className="w-full text-xs text-slate-400 hover:text-slate-600 transition-colors py-1"
+              >
+                {loading ? 'Generating...' : 'Get a new code'}
+              </button>
             </div>
           )}
         </div>
@@ -230,7 +238,8 @@ function ChildDashboard({ parentId: _parentId }: { parentId: string }) {
 
           <form onSubmit={handleSubmit} noValidate>
             <p className="text-xs font-medium text-slate-500 mb-2">Platform</p>
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
+            <div className="relative mb-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
               {PLATFORMS.map((p) => (
                 <button
                   key={p}
@@ -243,6 +252,8 @@ function ChildDashboard({ parentId: _parentId }: { parentId: string }) {
                   {p}
                 </button>
               ))}
+              </div>
+              <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
             </div>
 
             <p className="text-xs font-medium text-slate-500 mb-2">What would you like to post?</p>
@@ -289,9 +300,11 @@ function ChildDashboard({ parentId: _parentId }: { parentId: string }) {
           </div>
         )}
 
-        {auditLog.length > 0 && (
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Recent Posts</h3>
+        <div>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Recent Posts</h3>
+          {auditLog.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-4">No posts yet — submit one above!</p>
+          ) : (
             <div className="space-y-2">
               {auditLog.slice(0, 5).map((entry: any) => {
                 const status = entry.action?.includes('approved') ? 'Approved' : entry.action?.includes('rejected') ? 'Rejected' : 'Pending';
@@ -306,8 +319,8 @@ function ChildDashboard({ parentId: _parentId }: { parentId: string }) {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </div>
   );

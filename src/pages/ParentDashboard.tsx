@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -19,6 +19,15 @@ type Tab = 'overview' | 'approvals' | 'children' | 'settings';
 
 const PLATFORMS = ['YouTube', 'TikTok', 'Instagram', 'Snapchat', 'X', 'Discord'];
 
+const AGE_TIER_LABELS: Record<string, string> = {
+  under13: 'Under 13',
+  age13to15: '13 – 15',
+  age16to17: '16 – 17',
+};
+
+function formatAgeTier(tier: string | null | undefined): string {
+  return tier ? (AGE_TIER_LABELS[tier] ?? tier) : 'Unknown age';
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -119,6 +128,7 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
   const qc = useQueryClient();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const { data: posts = [], isLoading } = useQuery<PendingPost[]>({
     queryKey: ['pending-posts', parentId],
@@ -133,8 +143,15 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
       qc.invalidateQueries({ queryKey: ['pending-posts', parentId] });
       setRejectingId(null);
       setRejectReason('');
+      setProcessingId(null);
     },
+    onError: () => setProcessingId(null),
   });
+
+  function doResolve(postId: string, action: 'approve' | 'reject', reason?: string) {
+    setProcessingId(postId);
+    resolveMutation.mutate({ postId, action, reason });
+  }
 
   if (isLoading) return <Spinner />;
 
@@ -174,23 +191,14 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
               />
               <div className="flex gap-2">
                 <button
-                  onClick={() =>
-                    resolveMutation.mutate({
-                      postId: post.id,
-                      action: 'reject',
-                      reason: rejectReason || undefined,
-                    })
-                  }
-                  disabled={resolveMutation.isPending}
+                  onClick={() => doResolve(post.id, 'reject', rejectReason || undefined)}
+                  disabled={processingId === post.id}
                   className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 >
                   Confirm Reject
                 </button>
                 <button
-                  onClick={() => {
-                    setRejectingId(null);
-                    setRejectReason('');
-                  }}
+                  onClick={() => { setRejectingId(null); setRejectReason(''); }}
                   className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-600 text-sm font-medium hover:border-slate-400 transition-colors"
                 >
                   Cancel
@@ -200,15 +208,15 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
           ) : (
             <div className="flex gap-2">
               <button
-                onClick={() => resolveMutation.mutate({ postId: post.id, action: 'approve' })}
-                disabled={resolveMutation.isPending}
+                onClick={() => doResolve(post.id, 'approve')}
+                disabled={processingId === post.id}
                 className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
-                Approve
+                {processingId === post.id ? 'Approving...' : 'Approve'}
               </button>
               <button
                 onClick={() => setRejectingId(post.id)}
-                disabled={resolveMutation.isPending}
+                disabled={processingId === post.id}
                 className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Reject
@@ -230,16 +238,39 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
     allowedPlatforms: ['YouTube', 'Instagram', 'Discord'],
     screenTimeLimitMinutes: 120,
   });
+  const [rulesLoading, setRulesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  useEffect(() => {
+    supabase
+      .from('child_rules')
+      .select('post_approval_required, allowed_platforms, screen_time_limit_minutes')
+      .eq('child_id', child.uid)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setRules({
+            postApprovalRequired: data.post_approval_required ?? true,
+            allowedPlatforms: data.allowed_platforms ?? [],
+            screenTimeLimitMinutes: data.screen_time_limit_minutes ?? 120,
+          });
+        }
+        setRulesLoading(false);
+      });
+  }, [child.uid]);
 
   async function handleSave() {
     setSaving(true);
+    setSaveError('');
     try {
       await updateRules(child.uid, rules);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       qc.invalidateQueries({ queryKey: ['children'] });
+    } catch (err: any) {
+      setSaveError(err.message || 'Failed to save rules. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -252,6 +283,14 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
         ? r.allowedPlatforms.filter((p) => p !== platform)
         : [...r.allowedPlatforms, platform],
     }));
+  }
+
+  if (rulesLoading) {
+    return (
+      <div className="mt-4 border-t border-slate-200 pt-4 flex justify-center">
+        <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -316,6 +355,8 @@ function ChildRulesPanel({ child }: { child: ChildRecord }) {
         </div>
       </div>
 
+      {saveError && <p className="text-xs text-red-500">{saveError}</p>}
+
       <button
         onClick={handleSave}
         disabled={saving}
@@ -341,6 +382,8 @@ function ChildrenTab({ parentId }: { parentId: string }) {
 
   async function handleAddChild() {
     setShowInviteFlow(true);
+    // Reuse existing code for this session — don't regenerate on every tap
+    if (inviteCode && inviteCode !== 'ERROR') return;
     setGeneratingCode(true);
     setInviteCode('');
     try {
@@ -354,7 +397,8 @@ function ChildrenTab({ parentId }: { parentId: string }) {
   }
 
   function handleCopy() {
-    navigator.clipboard.writeText(inviteCode);
+    const link = `${window.location.origin}/login?code=${inviteCode}`;
+    navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -370,7 +414,7 @@ function ChildrenTab({ parentId }: { parentId: string }) {
               <div className="flex items-center gap-2">
                 <span className="text-slate-800 font-semibold text-sm">{child.displayName}</span>
                 <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                  {child.ageTier}
+                  {formatAgeTier(child.ageTier)}
                 </span>
               </div>
               {child.pendingCount > 0 && (
@@ -383,7 +427,7 @@ function ChildrenTab({ parentId }: { parentId: string }) {
               onClick={() =>
                 setExpandedChild(expandedChild === child.uid ? null : child.uid)
               }
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-400 transition-colors"
+              className="px-3 py-2 text-xs font-medium text-indigo-600 hover:text-indigo-400 transition-colors"
             >
               {expandedChild === child.uid ? 'Close' : 'Manage Rules'}
             </button>
@@ -413,7 +457,7 @@ function ChildrenTab({ parentId }: { parentId: string }) {
             </p>
           ) : (
             <>
-              <p className="text-slate-500 text-sm">Share this code with your child — they enter it after signing up:</p>
+              <p className="text-slate-500 text-sm">Share this link with your child — they create an account and are connected automatically:</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center">
                   <span className="text-3xl font-mono font-bold text-slate-800 tracking-widest">
@@ -423,12 +467,12 @@ function ChildrenTab({ parentId }: { parentId: string }) {
                 <button
                   onClick={handleCopy}
                   className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors"
-                  title="Copy code"
+                  title="Copy invite link"
                 >
                   <ClipboardIcon />
                 </button>
               </div>
-              {copied && <p className="text-xs text-emerald-600 text-center">Copied!</p>}
+              {copied && <p className="text-xs text-emerald-600 text-center">Link copied!</p>}
               <p className="text-xs text-slate-400 leading-relaxed">
                 Or if your child already sent <em>you</em> a code, enter it in the Join page.
               </p>
@@ -436,10 +480,7 @@ function ChildrenTab({ parentId }: { parentId: string }) {
           )}
 
           <button
-            onClick={() => {
-              setShowInviteFlow(false);
-              setInviteCode('');
-            }}
+            onClick={() => setShowInviteFlow(false)}
             className="w-full py-2 border border-slate-600 rounded-lg text-slate-600 text-sm font-medium hover:border-slate-400 transition-colors"
           >
             Done
@@ -558,7 +599,7 @@ export default function ParentDashboard() {
               </span>
             )}
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
+              <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-indigo-600 rounded-t" />
             )}
           </button>
         ))}

@@ -16,10 +16,19 @@ export default function JoinFamilyPage() {
 
   const isParent = user?.role === 'parent';
 
+  // Fire auto-join when role becomes available
   useEffect(() => {
     if (urlCode && user?.role) handleJoin(urlCode);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
+
+  // Timeout fallback: if auto-join hasn't resolved in 10s, show manual form
+  useEffect(() => {
+    if (!autoJoining) return;
+    const t = setTimeout(() => setAutoJoining(false), 10000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleJoin(joinCode = code) {
     if (!joinCode.trim() || !user) return;
@@ -47,7 +56,8 @@ export default function JoinFamilyPage() {
     }
   }
 
-  if (!user?.role) {
+  // Show spinner while waiting for role — bounded by the 10s timeout above
+  if (autoJoining && !user?.role && !error) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="w-7 h-7 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
@@ -98,7 +108,7 @@ export default function JoinFamilyPage() {
 
             <button
               onClick={() => navigate(isParent ? '/dashboard' : '/child')}
-              className="w-full text-slate-400 text-sm hover:text-slate-600 transition-colors text-center"
+              className="w-full text-slate-400 text-sm hover:text-slate-600 transition-colors text-center py-1"
             >
               Skip for now
             </button>

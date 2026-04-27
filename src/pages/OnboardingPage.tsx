@@ -17,14 +17,17 @@ export default function OnboardingPage() {
   const inviteCode = searchParams.get('code') || '';
 
   const [step, setStep] = useState<'role' | 'age-tier'>('role');
+  const [selectedRole, setSelectedRole] = useState<'parent' | 'child' | null>(null);
   const [ageTier, setAgeTier] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   async function handleRoleSelect(role: 'parent' | 'child') {
     if (role === 'child') {
+      setSelectedRole('child');
       setStep('age-tier');
     } else {
+      setSelectedRole('parent');
       await completeOnboarding('parent', undefined);
     }
   }
@@ -33,7 +36,6 @@ export default function OnboardingPage() {
     setLoading(true);
     setError('');
     try {
-      // Re-fetch from Supabase if the store's user was wiped by an auth event
       let activeUser = user;
       if (!activeUser) {
         const { data: { user: sbUser } } = await supabase.auth.getUser();
@@ -55,10 +57,12 @@ export default function OnboardingPage() {
       if (role === 'parent') {
         navigate(inviteCode ? `/join?code=${inviteCode}` : '/dashboard', { replace: true });
       } else {
-        navigate('/child', { replace: true });
+        // P0 fix: carry the invite code through for children too
+        navigate(inviteCode ? `/join?code=${inviteCode}` : '/child', { replace: true });
       }
     } catch (err: any) {
       setError(err.message || 'Failed to set up your account. Please try again.');
+      setSelectedRole(null);
       setLoading(false);
     }
   }
@@ -67,15 +71,18 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <a
-            href="https://certainid.io"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors mb-5"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to certainid.io
-          </a>
+          {/* Only show escape link on role selection, not mid-onboarding */}
+          {step === 'role' && !loading && (
+            <a
+              href="https://certainid.io"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors mb-5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              certainid.io
+            </a>
+          )}
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-50 rounded-2xl mb-4">
             <svg className="w-8 h-8 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6l-8-4z" />
@@ -88,22 +95,31 @@ export default function OnboardingPage() {
         </div>
 
         {step === 'role' && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <RoleCard
-              emoji="👨‍👩‍👧"
-              title="I'm a Parent"
-              description="Monitor and approve your child's posts before they go live"
-              onClick={() => handleRoleSelect('parent')}
-              disabled={loading}
-            />
-            <RoleCard
-              emoji="🧒"
-              title="I'm a Young Person"
-              description="Share posts with your parent's approval"
-              onClick={() => handleRoleSelect('child')}
-              disabled={loading}
-            />
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <RoleCard
+                emoji="👨‍👩‍👧"
+                title="I'm a Parent"
+                description="Monitor and approve your child's posts before they go live"
+                onClick={() => handleRoleSelect('parent')}
+                loading={loading && selectedRole === 'parent'}
+                disabled={loading}
+              />
+              <RoleCard
+                emoji="🧒"
+                title="I'm a Young Person"
+                description="Share posts with your parent's approval"
+                onClick={() => handleRoleSelect('child')}
+                loading={loading && selectedRole === 'child'}
+                disabled={loading}
+              />
+            </div>
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="text-red-600 text-sm text-center">{error}</p>
+              </div>
+            )}
+          </>
         )}
 
         {step === 'age-tier' && (
@@ -129,8 +145,9 @@ export default function OnboardingPage() {
 
             <div className="flex gap-3 mt-5">
               <button
-                onClick={() => { setStep('role'); setAgeTier(''); setError(''); }}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
+                onClick={() => { setStep('role'); setAgeTier(''); setError(''); setSelectedRole(null); }}
+                disabled={loading}
+                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Back
               </button>
@@ -149,18 +166,24 @@ export default function OnboardingPage() {
   );
 }
 
-function RoleCard({ emoji, title, description, onClick, disabled }: {
-  emoji: string; title: string; description: string; onClick: () => void; disabled: boolean;
+function RoleCard({ emoji, title, description, onClick, disabled, loading }: {
+  emoji: string; title: string; description: string; onClick: () => void; disabled: boolean; loading: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="group flex flex-col items-center text-center gap-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl p-6 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      className="group flex flex-col items-center text-center gap-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl p-6 shadow-sm transition-all disabled:cursor-not-allowed"
     >
-      <span className="text-4xl">{emoji}</span>
-      <div>
-        <p className="text-slate-800 font-semibold text-base">{title}</p>
+      {loading ? (
+        <div className="w-10 h-10 flex items-center justify-center">
+          <div className="w-7 h-7 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <span className="text-4xl">{emoji}</span>
+      )}
+      <div className={loading ? 'opacity-50' : ''}>
+        <p className="text-slate-800 font-semibold text-base">{loading ? 'Setting up...' : title}</p>
         <p className="mt-1 text-slate-500 text-xs leading-relaxed">{description}</p>
       </div>
     </button>
