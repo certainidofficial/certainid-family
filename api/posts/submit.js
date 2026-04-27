@@ -4,7 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://certainid-family.vercel.app',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };

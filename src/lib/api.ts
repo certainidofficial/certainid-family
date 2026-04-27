@@ -40,11 +40,31 @@ export function joinFamily(childId: string, inviteCode: string) {
 }
 
 export function getChildren(parentId: string): Promise<ChildRecord[]> {
-  return request(`/api/family/children?parentId=${encodeURIComponent(parentId)}`);
+  return request<{ success: boolean; children: any[] }>(
+    `/api/family/children?parentId=${encodeURIComponent(parentId)}`
+  ).then((r) =>
+    (r.children ?? []).map((c) => ({
+      uid: c.id ?? c.uid,
+      displayName: c.displayName ?? c.display_name ?? null,
+      ageTier: c.ageTier ?? c.age_tier ?? null,
+      pendingCount: c.pendingPostCount ?? c.pendingCount ?? 0,
+    }))
+  );
 }
 
 export function getPendingPosts(parentId: string): Promise<PendingPost[]> {
-  return request(`/api/posts/pending?parentId=${encodeURIComponent(parentId)}`);
+  return request<{ success: boolean; posts: any[] }>(
+    `/api/posts/pending?parentId=${encodeURIComponent(parentId)}`
+  ).then((r) =>
+    (r.posts ?? []).map((p) => ({
+      id: p.id,
+      childId: p.child_id ?? p.childId,
+      childName: p.childDisplayName ?? p.childName ?? p.child_email ?? 'Unknown',
+      platform: p.platform,
+      content: p.content,
+      createdAt: p.created_at ?? p.createdAt,
+    }))
+  );
 }
 
 export function submitPost(

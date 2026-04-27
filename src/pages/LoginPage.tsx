@@ -29,6 +29,7 @@ export default function LoginPage() {
   const inviteCode = searchParams.get('code') || '';
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,22 +43,28 @@ export default function LoginPage() {
     setError('');
 
     if (!email.trim() || !password) { setError('Please fill in all fields.'); return; }
+    if (mode === 'signup' && !name.trim()) { setError('Please enter your name.'); return; }
     if (mode === 'signup' && password !== confirmPassword) { setError('Passwords do not match.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
 
     setSubmitting(true);
     try {
       if (mode === 'signup') {
-        const { data, error: authError } = await supabase.auth.signUp({ email: email.trim(), password });
+        const { data, error: authError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { data: { full_name: name.trim() } },
+        });
         if (authError) throw authError;
         if (!data.user) throw new Error('Signup failed.');
-        setUser({ uid: data.user.id, email: data.user.email ?? null, displayName: null, role: null });
+        setUser({ uid: data.user.id, email: data.user.email ?? null, displayName: name.trim(), role: null });
         navigate('/onboarding' + (inviteCode ? `?code=${inviteCode}` : ''));
       } else {
         const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (authError) throw authError;
         if (!data.user) throw new Error('Sign in failed.');
-        setUser({ uid: data.user.id, email: data.user.email ?? null, displayName: null, role: null });
+        const displayName = (data.user.user_metadata?.full_name as string) ?? null;
+        setUser({ uid: data.user.id, email: data.user.email ?? null, displayName, role: null });
         navigate(redirectAfterAuth);
       }
     } catch (err: any) {
@@ -88,7 +95,7 @@ export default function LoginPage() {
             {(['signin', 'signup'] as const).map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setError(''); setPassword(''); setConfirmPassword(''); }}
+                onClick={() => { setMode(m); setError(''); setName(''); setPassword(''); setConfirmPassword(''); }}
                 className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
                   mode === m ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                 }`}
@@ -99,6 +106,16 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-3">
+            {mode === 'signup' && (
+              <input
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition"
+              />
+            )}
             <input
               type="email"
               placeholder="Email address"

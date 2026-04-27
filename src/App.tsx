@@ -11,6 +11,16 @@ import ParentDashboard from './pages/ParentDashboard';
 import ChildPage from './pages/ChildPage';
 import JoinFamilyPage from './pages/JoinFamilyPage';
 
+async function fetchRoleFromDB(uid: string): Promise<{ role: 'parent' | 'child' | null; ageTier?: string; displayName?: string }> {
+  const { data } = await supabase
+    .from('family_users')
+    .select('role, age_tier, display_name')
+    .eq('id', uid)
+    .maybeSingle();
+  if (!data) return { role: null };
+  return { role: data.role as 'parent' | 'child', ageTier: data.age_tier ?? undefined, displayName: data.display_name ?? undefined };
+}
+
 function RootRedirect() {
   const { user, loading } = useAuthStore();
 
@@ -26,19 +36,22 @@ export default function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const existingUser = useAuthStore.getState().user;
-        const role = existingUser?.uid === session.user.id ? existingUser?.role ?? null : null;
-        const ageTier = existingUser?.uid === session.user.id ? existingUser?.ageTier : undefined;
+        // Use cached role if uid matches; otherwise fetch from DB
+        let role = existingUser?.uid === session.user.id ? existingUser?.role ?? null : null;
+        let ageTier = existingUser?.uid === session.user.id ? existingUser?.ageTier : undefined;
+        let displayName = (session.user.user_metadata?.full_name as string) ?? existingUser?.displayName ?? null;
 
-        setUser({
-          uid: session.user.id,
-          email: session.user.email ?? null,
-          displayName: (session.user.user_metadata?.full_name as string) ?? null,
-          role,
-          ageTier,
-        });
+        if (!role) {
+          const db = await fetchRoleFromDB(session.user.id);
+          role = db.role;
+          ageTier = db.ageTier;
+          displayName = db.displayName ?? displayName;
+        }
+
+        setUser({ uid: session.user.id, email: session.user.email ?? null, displayName, role, ageTier });
 
         if (!role) {
           navigate('/onboarding', { replace: true });
@@ -54,14 +67,8 @@ export default function App() {
         const existingUser = useAuthStore.getState().user;
         const role = existingUser?.uid === session.user.id ? existingUser?.role ?? null : null;
         const ageTier = existingUser?.uid === session.user.id ? existingUser?.ageTier : undefined;
-
-        setUser({
-          uid: session.user.id,
-          email: session.user.email ?? null,
-          displayName: (session.user.user_metadata?.full_name as string) ?? null,
-          role,
-          ageTier,
-        });
+        const displayName = (session.user.user_metadata?.full_name as string) ?? existingUser?.displayName ?? null;
+        setUser({ uid: session.user.id, email: session.user.email ?? null, displayName, role, ageTier });
       } else {
         setUser(null);
       }

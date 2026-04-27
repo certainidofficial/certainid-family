@@ -19,14 +19,6 @@ type Tab = 'overview' | 'approvals' | 'children' | 'settings';
 
 const PLATFORMS = ['YouTube', 'TikTok', 'Instagram', 'Snapchat', 'X', 'Discord'];
 
-// TODO: wire to getAuditLog
-const MOCK_AUDIT = [
-  { id: '1', childName: 'Alex', action: 'Post submitted', platform: 'TikTok', timestamp: new Date(Date.now() - 3 * 60000).toISOString() },
-  { id: '2', childName: 'Alex', action: 'Post approved', platform: 'Instagram', timestamp: new Date(Date.now() - 25 * 60000).toISOString() },
-  { id: '3', childName: 'Sam', action: 'Post submitted', platform: 'YouTube', timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
-  { id: '4', childName: 'Alex', action: 'Post rejected', platform: 'X', timestamp: new Date(Date.now() - 5 * 3600000).toISOString() },
-  { id: '5', childName: 'Sam', action: 'Post approved', platform: 'Discord', timestamp: new Date(Date.now() - 8 * 3600000).toISOString() },
-];
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -62,42 +54,40 @@ function ClipboardIcon() {
 
 // ---- Overview Tab ----
 
-function OverviewTab({ pendingCount, children }: { pendingCount: number; children: ChildRecord[] }) {
-  const flagsToday = 0; // TODO: derive from audit log
+function OverviewTab({ pendingCount, children, onAddChild }: { pendingCount: number; children: ChildRecord[]; onAddChild: () => void }) {
+  if (children.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+        <div className="text-5xl">👨‍👩‍👧</div>
+        <div>
+          <p className="text-slate-800 font-bold text-base">No children added yet</p>
+          <p className="text-slate-400 text-sm mt-1 leading-relaxed max-w-xs">
+            Add a child account and send them an invite link to get started.
+          </p>
+        </div>
+        <button
+          onClick={onAddChild}
+          className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+        >
+          + Add your first child
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard label="Children" value={children.length} />
-        <StatCard
-          label="Pending"
-          value={pendingCount}
-          highlight={pendingCount > 0}
-        />
-        <StatCard label="Flags Today" value={flagsToday} />
+        <StatCard label="Pending approval" value={pendingCount} highlight={pendingCount > 0} />
       </div>
 
-      <div>
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-          Recent Activity
-        </h2>
-        <div className="space-y-2">
-          {MOCK_AUDIT.map((entry) => (
-            <div
-              key={entry.id}
-              className="bg-white rounded-xl px-4 py-3 flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm text-slate-800 font-medium truncate">
-                  {entry.childName} — {entry.action}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">{timeAgo(entry.timestamp)}</p>
-              </div>
-              {entry.platform && <PlatformBadge platform={entry.platform} />}
-            </div>
-          ))}
+      {pendingCount > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <p className="text-red-700 text-sm font-semibold">{pendingCount} post{pendingCount !== 1 ? 's' : ''} waiting for your review</p>
+          <p className="text-red-500 text-xs mt-0.5">Go to the Approvals tab to review them.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -162,7 +152,7 @@ function ApprovalsTab({ parentId }: { parentId: string }) {
       {posts.map((post) => (
         <div key={post.id} className="bg-white rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-800 font-semibold text-sm">>{post.childName}</span>
+            <span className="text-slate-800 font-semibold text-sm">{post.childName}</span>
             <div className="flex items-center gap-2">
               <PlatformBadge platform={post.platform} />
               <span className="text-xs text-slate-400">{timeAgo(post.createdAt)}</span>
@@ -503,6 +493,7 @@ export default function ParentDashboard() {
   const navigate = useNavigate();
   const { user, setUser, setLoading } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const goToAddChild = () => setActiveTab('children');
 
   const { data: pendingPosts = [] } = useQuery<PendingPost[]>({
     queryKey: ['pending-posts', user?.uid ?? ''],
@@ -576,7 +567,7 @@ export default function ParentDashboard() {
       {/* Content */}
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full">
         {activeTab === 'overview' && (
-          <OverviewTab pendingCount={pendingPosts.length} children={children} />
+          <OverviewTab pendingCount={pendingPosts.length} children={children} onAddChild={goToAddChild} />
         )}
         {activeTab === 'approvals' && user && (
           <ApprovalsTab parentId={user.uid} />

@@ -18,7 +18,7 @@ function InviteParentScreen({ childId }: { childId: string }) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
-  const { setUser, user } = useAuthStore();
+  const { setUser } = useAuthStore();
   const navigate = useNavigate();
 
   const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://certainid-family.vercel.app';
@@ -160,7 +160,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ChildDashboard({ parentId }: { parentId: string }) {
+function ChildDashboard({ parentId: _parentId }: { parentId: string }) {
   const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
 
