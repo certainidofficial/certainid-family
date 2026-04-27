@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 
+
 function ShieldIcon() {
   return (
     <svg className="w-10 h-10 text-indigo-600" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -78,6 +79,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
+          <a
+            href="https://certainid.io"
+            className="mb-5 flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to certainid.io
+          </a>
           <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-3">
             <ShieldIcon />
           </div>
@@ -155,9 +165,21 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-5 text-center text-xs text-slate-400">
-          Your data is encrypted and never shared with third parties.
-        </p>
+        <div className="mt-4 text-center space-y-2">
+          <button
+            onClick={async () => {
+              if (!email.trim()) { setError('Enter your email address first.'); return; }
+              const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                redirectTo: window.location.origin + '/login',
+              });
+              setError(resetError ? resetError.message : 'Password reset email sent — check your inbox.');
+            }}
+            className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+          >
+            Forgot password?
+          </button>
+          <p className="text-xs text-slate-400">Your data is encrypted and never shared with third parties.</p>
+        </div>
       </div>
     </div>
   );
