@@ -29,6 +29,11 @@ export default async function handler(req, res) {
     res.end(JSON.stringify({ error: 'parentId query param is required' }));
     return;
   }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parentId)) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid parentId format' }));
+    return;
+  }
 
   let supabase;
   try { supabase = getSupabase(); } catch (err) {
